@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FraudShield | Anomaly Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 2rem; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        
+        .container { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        
+        .panel { background: var(--card-bg); padding: 2.5rem; border-radius: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        h2 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        .subtitle { color: #64748b; margin-bottom: 2rem; font-size: 0.9rem; }
+
+        .input-group { margin-bottom: 1.25rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #475569; }
+        .input-field { width: 100%; padding: 0.85rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; font-size: 1rem; outline: none; transition: 0.2s; }
+        .input-field:focus { border-color: var(--primary); outline:none; }
+
+        .submit-btn { width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 0.75rem; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .submit-btn:hover { background: #4338ca; }
+
+        .result-card { margin-top: 2rem; padding: 1.5rem; border-radius: 1rem; background: #f8fafc; border-left: 5px solid #cbd5e1; }
+        .result-card.fraud { border-left-color: #ef4444; background: #fef2f2; }
+        .result-card.safe { border-left-color: #22c55e; background: #f0fdf4; }
+
+        .plot-img { width: 100%; border-radius: 1rem; margin-top: 1rem; border: 1px solid #e2e8f0; }
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <h2>Fraud Shield</h2>
+        <p class="subtitle">Anomaly Detection</p>
+        <form id="transactionForm">
+            <div class="input-group">
+                <label>Amount ($)</label>
+                <input type="number" step="0.01" min="0" max="10000" class="input-field" id="TransactionAmount" required>
+            </div>
+            <div class="input-group">
+                <label>Customer Age</label>
+                <input type="number" min="18" max="100" class="input-field" id="CustomerAge" required>
+            </div>
+            <div class="input-group">
+                <label>Duration (s)</label>
+                <input type="number" min="18" max="600" class="input-field" id="TransactionDuration" required>
+            </div>
+            <div class="input-group">
+                <label>Login Attempts</label>
+                <input type="number" min="1" max="20" class="input-field" id="LoginAttempts" required>
+            </div>
+            <div class="input-group">
+                <label>Account Balance ($)</label>
+                <input type="number" step="0.01" min="0" max="50000" class="input-field" id="AccountBalance" required>
+            </div>
+            <button type="submit" class="submit-btn" id="submitBtn">Analyze Transaction</button>
+        </form>
+        <div id="resultContainer"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Cluster Visualization</h2>
+        <img src="/static/cluster.png" class="plot-img" alt="Cluster Visualization">
+        <p style="margin-top:1rem; font-size: 0.8rem; color: #64748b;">
+            <i class="fas fa-info-circle"></i> Showing anomaly clusters identified by Isolation Forest and DBSCAN.
+        </p>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('transactionForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultDiv = document.getElementById('resultContainer');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Collect values
+        const amount = parseFloat(document.getElementById('TransactionAmount').value);
+        const age = parseInt(document.getElementById('CustomerAge').value);
+        const duration = parseInt(document.getElementById('TransactionDuration').value);
+        const attempts = parseInt(document.getElementById('LoginAttempts').value);
+        const balance = parseFloat(document.getElementById('AccountBalance').value);
+
+        // Client-side validation
+        if (amount < 0 || amount > 10000) {
+            alert('Amount should be between 0 and 10,000');
+            return;
+        }
+        if (age < 18 || age > 100) {
+            alert('Age should be between 18 and 100');
+            return;
+        }
+        if (duration < 18 || duration > 600) {
+            alert('Duration should be between 18 and 600 seconds');
+            return;
+        }
+        if (attempts < 1 || attempts > 20) {
+            alert('Login attempts should be between 1 and 20');
+            return;
+        }
+        if (balance < 0 || balance > 50000) {
+            alert('Balance should be between 0 and 10,000');
+            return;
+        }
+
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        const data = {
+            TransactionAmount: amount,
+            CustomerAge: age,
+            TransactionDuration: duration,
+            LoginAttempts: attempts,
+            AccountBalance: balance
+        };
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const res = await response.json();
+
+            const isFraud = res.iso_forest_outlier || res.dbscan_outlier;
+            const verdictClass = isFraud ? 'fraud' : 'safe';
+            const icon = isFraud ? '🚨' : '✅';
+            const verdictText = isFraud ? 'Anomaly Detected' : 'Transaction Safe';
+
+            resultDiv.innerHTML = `
+                <div class="result-card ${verdictClass}">
+                    <h3 style="margin-bottom: 0.5rem;">${icon} ${verdictText}</h3>
+                    <p style="font-size: 0.9rem;">Isolation Forest: ${res.iso_forest_outlier ? 'Outlier' : 'Normal'} | DBSCAN: ${res.dbscan_outlier ? 'Outlier' : 'Normal'}</p>
+                    <p style="font-size: 0.85rem; margin-top:0.5rem;">Distance to nearest core point: ${res.distance_to_core?.toFixed(4) ?? 'N/A'}</p>
+                </div>
+            `;
+        } catch (err) {
+            alert('Network error. Please try again.');
+        } finally {
+            submitBtn.innerHTML = 'Analyze Transaction';
+        }
+    });
+</script>
+</body>
+</html>
