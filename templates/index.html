@@ -95,24 +95,29 @@
         const balance = parseFloat(document.getElementById('AccountBalance').value);
 
         // Client-side validation
-        if (amount < 0 || amount > 10000) {
-            alert('Amount should be between 0 and 10,000');
+        // Inside form submit handler
+        if (amount < 0 || amount > 2000) {
+            alert('Amount must be between 0 and 2000');
             return;
         }
         if (age < 18 || age > 100) {
-            alert('Age should be between 18 and 100');
+            alert('Age must be between 18 and 100');
             return;
         }
-        if (duration < 18 || duration > 600) {
-            alert('Duration should be between 18 and 600 seconds');
+        if (duration < 10 || duration > 300) {
+            alert('Duration must be between 10 and 300 seconds');
             return;
         }
         if (attempts < 1 || attempts > 20) {
-            alert('Login attempts should be between 1 and 20');
+            alert('Login attempts must be between 1 and 20');
             return;
         }
-        if (balance < 0 || balance > 50000) {
-            alert('Balance should be between 0 and 10,000');
+        if (balance < 0 || balance > 15000) {
+            alert('Balance must be between 0 and 15000');
+            return;
+        }
+        if (amount > balance) {
+            alert('Transaction amount cannot exceed account balance');
             return;
         }
 
